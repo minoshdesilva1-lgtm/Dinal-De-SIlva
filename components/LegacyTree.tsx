@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { FamilyMember, D3Member } from '../types';
-import { COLORS } from '../constants';
+import { FamilyMember, D3Member } from '../types.ts';
+import { COLORS } from '../constants.ts';
 
 interface LegacyTreeProps {
   data: FamilyMember;

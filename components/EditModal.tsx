@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaUpload, FaCamera, FaTrash } from 'react-icons/fa';
-import { FamilyMember, D3Member } from '../types';
-import { COLORS } from '../constants';
+import { FamilyMember, D3Member } from '../types.ts';
+import { COLORS } from '../constants.ts';
 
 interface EditModalProps {
   member: D3Member | FamilyMember;

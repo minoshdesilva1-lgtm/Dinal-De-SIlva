@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import LegacyTree from './components/LegacyTree';
-import EditModal from './components/EditModal';
-import { Header, NavigationInstructions } from './components/Layout';
-import { INITIAL_DATA } from './constants';
-import { FamilyMember, D3Member } from './types';
+import LegacyTree from './components/LegacyTree.tsx';
+import EditModal from './components/EditModal.tsx';
+import { Header, NavigationInstructions } from './components/Layout.tsx';
+import { INITIAL_DATA } from './constants.ts';
+import { FamilyMember, D3Member } from './types.ts';
 
 // Helper to calculate total connections (Degree) for a node
 const calculateDegree = (root: FamilyMember, targetId: string): number => {

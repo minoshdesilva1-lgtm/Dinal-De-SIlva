@@ -1,4 +1,4 @@
-import { FamilyMember } from "./types";
+import { FamilyMember } from "./types.ts";
 
 export const INITIAL_DATA: FamilyMember = {
   id: "root",
