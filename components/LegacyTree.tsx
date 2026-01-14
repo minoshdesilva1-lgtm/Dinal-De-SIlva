@@ -271,7 +271,6 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
                 .attr("x", -40)
                 .attr("y", -40)
                 .attr("clip-path", `url(#${uniqueId})`)
-                .style("filter", "grayscale(100%) contrast(1.1)")
                 .style("transition", "filter 0.3s ease");
             
             mainGroup.append("text")
@@ -416,7 +415,6 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
                     .attr("x", -40)
                     .attr("y", -40)
                     .attr("clip-path", `url(#${spouseId})`)
-                    .style("filter", "grayscale(100%) contrast(1.1)")
                     .style("transition", "filter 0.3s ease");
 
                 spouseGroup.append("text")
@@ -456,11 +454,9 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
 
                 // Spouse Interaction
                 spouseGroup.on("mouseenter", function() {
-                    d3.select(this).select("image").style("filter", "grayscale(0%) contrast(1)");
                     d3.select(this).select("circle").attr("stroke", COLORS.nodeBorderHover);
                     spouseControls.attr("opacity", 1);
                 }).on("mouseleave", function() {
-                    d3.select(this).select("image").style("filter", "grayscale(100%) contrast(1.1)");
                     d3.select(this).select("circle").attr("stroke", COLORS.nodeBorder);
                     spouseControls.attr("opacity", 0);
                 });
