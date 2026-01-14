@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legacy Tree</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Aleo:wght@300;400;700&family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              legacy: {
+                bg: '#F2F0E5',       // Cream/Beige background
+                dark: '#1C2E2A',     // Very dark green for primary text
+                primary: '#335C57',  // Deep green for header
+                light: '#E8E6D9',    // Light cream/grey for header text
+                accent: '#D4AF37',   // Gold
+                mute: '#5C6B66'      // Muted green-grey for secondary text
+              }
+            },
+            fontFamily: {
+              serif: ['Cinzel', 'serif'],
+              slab: ['Aleo', 'serif'],
+              sans: ['Lato', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #F2F0E5;
+        color: #1C2E2A;
+        overflow: hidden;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #F2F0E5; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #5C6B66; 
+        border-radius: 4px;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "d3": "https://esm.sh/d3@^7.9.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-icons/": "https://esm.sh/react-icons@^5.5.0/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
