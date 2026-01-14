@@ -35,6 +35,19 @@ const transformData = (member: FamilyMember): D3MemberWithLayout => {
   return d3Node;
 };
 
+// Deterministic pseudo-random number generator
+const getRandomOffset = (id: string, seedStr: string): number => {
+    let h = 0x811c9dc5;
+    const str = id + seedStr;
+    for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+    }
+    h >>>= 0;
+    const float = (h / 4294967296); // 0..1
+    return (float - 0.5) * 2; // -1..1
+};
+
 const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParent, onAddChild, onAddSpouse, onEdit }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -51,6 +64,19 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
       newSet.add(id);
     }
     setExpandedSpouseIds(newSet);
+  };
+
+  const perturbNodes = (nodes: d3.HierarchyPointNode<D3MemberWithLayout>[]) => {
+      nodes.forEach(node => {
+          // Don't perturb the absolute root too much to keep it generally centered
+          const magnitude = node.depth === 0 ? 0 : 1; 
+          
+          const ox = getRandomOffset(node.data.id, 'x') * 20 * magnitude; // Horizontal wobble
+          const oy = getRandomOffset(node.data.id, 'y') * 15 * magnitude; // Vertical wobble
+          
+          node.x += ox;
+          node.y += oy;
+      });
   };
 
   // --- Helper to calculate layout for a spouse tree recursively ---
@@ -85,6 +111,9 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
         });
     
     const layoutRoot = layout(root);
+
+    // Apply perturbation to spouse tree nodes immediately
+    perturbNodes(layoutRoot.descendants());
 
     // 4. Calculate total width of this tree
     let minX = Infinity;
@@ -146,6 +175,9 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
 
     treeLayout(rootHierarchy);
 
+    // Perturb main tree nodes
+    perturbNodes(rootHierarchy.descendants());
+
     const zoomGroup = svg.append("g");
     
     const zoom = d3.zoom<SVGSVGElement, unknown>()
@@ -185,10 +217,35 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
         isMainTree = false
     ) => {
         
-        // Custom link generator for this sub-tree context
-        const linkGenerator = d3.linkVertical<d3.HierarchyPointLink<D3MemberWithLayout>, d3.HierarchyPointNode<D3MemberWithLayout>>()
-            .x(d => originX + d.x)
-            .y(d => originY + (isMainTree ? -d.y : d.y));
+        // Custom wavy link generator
+        const generateWavyPath = (d: d3.HierarchyPointLink<D3MemberWithLayout>) => {
+            let sx = originX + d.source.x;
+            let sy = originY + (isMainTree ? -d.source.y : d.source.y);
+            let tx = originX + d.target.x;
+            let ty = originY + (isMainTree ? -d.target.y : d.target.y);
+
+            // Add a bit of randomness to the control points
+            const seed = d.target.data.id + d.source.data.id;
+            const midY = (sy + ty) / 2;
+            const controlOffset = getRandomOffset(seed, 'curve') * 30; 
+
+            // IMPORTANT: Ensure path is drawn Left-to-Right to make text rendering consistent (always on top)
+            const isTargetLeft = tx < sx;
+
+            if (isTargetLeft) {
+                // Target is left of Source. Draw from Target -> Source
+                return `M ${tx} ${ty} 
+                        C ${tx} ${midY - controlOffset}, 
+                          ${sx} ${midY + controlOffset}, 
+                          ${sx} ${sy}`;
+            } else {
+                // Source is left of Target (or vertical). Draw from Source -> Target
+                return `M ${sx} ${sy} 
+                        C ${sx} ${midY + controlOffset}, 
+                          ${tx} ${midY - controlOffset}, 
+                          ${tx} ${ty}`;
+            }
+        };
 
         // 1. Draw Links
         const linkSelection = linksGroup.append("g").selectAll(".link")
@@ -198,21 +255,16 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
 
         linkSelection.append("path")
             .attr("id", d => `link-${d.target.data.id}`)
-            .attr("d", d => {
-                 const isLeft = d.target.x < d.source.x;
-                 if (isLeft) {
-                     return linkGenerator({source: d.target, target: d.source});
-                 }
-                 return linkGenerator(d);
-            })
+            .attr("d", d => generateWavyPath(d))
             .attr("fill", "none")
             .attr("stroke", COLORS.link)
-            .attr("stroke-width", 1.5)
-            .attr("stroke-opacity", 0.5);
+            .attr("stroke-width", 5) 
+            .attr("stroke-opacity", 0.5)
+            .attr("stroke-linecap", "round");
 
         // Labels
         linkSelection.append("text")
-            .attr("dy", -10)
+            .attr("dy", -5) // Move text UP relative to the path (which is now consistently oriented)
             .style("pointer-events", "none")
             .append("textPath")
             .attr("href", d => `#link-${d.target.data.id}`)
@@ -353,15 +405,36 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
             if (d.data.spouse) {
                 const spouse = d.data.spouse;
                 const spouseId = `clip-spouse-${spouse.id}`;
-                const spouseOffset = 220 * direction;
                 
+                // Add randomness to spouse position too
+                const spouseRandX = getRandomOffset(spouse.id, 'sx') * 10;
+                const spouseRandY = getRandomOffset(spouse.id, 'sy') * 10;
+                
+                const spouseOffset = (220 * direction) + spouseRandX;
+                const spouseOffsetY = spouseRandY;
+
                 // Connection
                 const pathId = `link-spouse-${d.data.id}`;
+                
+                // Calculate dynamic path for spouse connection based on offset positions
+                const startX = direction === -1 ? -50 : 50;
+                const endX = spouseOffset + (direction === -1 ? 50 : -50);
+                
+                // Control point height randomization
+                const curveY = 30 + (getRandomOffset(spouse.id, 'sc') * 15);
+                const midX = (startX + endX)/2;
+
                 let pathD = "";
+                // direction -1 means Main(Right) -> Spouse(Left). startX > endX.
+                // To keep text on top, we always want to draw Left -> Right.
+                // if direction -1: Spouse(Left) is at endX. Main(Right) is at startX.
                 if (direction === -1) {
-                    pathD = `M -170 0 Q -110 30 -50 0`;
+                    // Draw Spouse(Left) -> Main(Right)
+                    pathD = `M ${endX} ${spouseOffsetY} Q ${midX} ${curveY} ${startX} 0`;
                 } else {
-                    pathD = `M 50 0 Q 110 30 170 0`;
+                    // direction 1: Main(Left) -> Spouse(Right).
+                    // Draw Main(Left) -> Spouse(Right)
+                    pathD = `M ${startX} 0 Q ${midX} ${curveY} ${endX} ${spouseOffsetY}`;
                 }
                 
                 nodeGroup.append("path")
@@ -369,12 +442,13 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
                     .attr("d", pathD)
                     .attr("fill", "none")
                     .attr("stroke", COLORS.link)
-                    .attr("stroke-width", 2)
+                    .attr("stroke-width", 5) 
                     .attr("stroke-dasharray", "4,4")
-                    .attr("stroke-opacity", 0.6);
+                    .attr("stroke-opacity", 0.6)
+                    .attr("stroke-linecap", "round");
 
                 nodeGroup.append("text")
-                    .attr("dy", -5)
+                    .attr("dy", -5) // Move text UP
                     .style("pointer-events", "none")
                     .append("textPath")
                     .attr("href", `#${pathId}`)
@@ -389,7 +463,7 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
 
                 // Spouse Group
                 const spouseGroup = nodeGroup.append("g")
-                    .attr("transform", `translate(${spouseOffset}, 0)`)
+                    .attr("transform", `translate(${spouseOffset}, ${spouseOffsetY})`)
                     .style("cursor", "pointer")
                     .on("click", (e) => {
                         e.stopPropagation();
@@ -436,7 +510,7 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
                     .attr("font-size", "10px");
                 
                 const spouseControls = nodeGroup.append("g")
-                    .attr("transform", `translate(${spouseOffset}, 0)`)
+                    .attr("transform", `translate(${spouseOffset}, ${spouseOffsetY})`)
                     .attr("opacity", 0)
                     .style("transition", "opacity 0.2s ease");
                 
@@ -470,7 +544,7 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
                     const subRoot = d.data.spouseTreeLayout;
                     
                     const spouseVisualX = originX + d.x + spouseOffset;
-                    const spouseVisualY = originY + (isMainTree ? -d.y : d.y);
+                    const spouseVisualY = originY + (isMainTree ? -d.y : d.y) + spouseOffsetY;
                     
                     // Filter out the root node (the spouse itself) from the recursive render.
                     // The spouse is already rendered manually above with specific controls.
