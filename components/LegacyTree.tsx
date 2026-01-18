@@ -258,7 +258,7 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
             .attr("d", d => generateWavyPath(d))
             .attr("fill", "none")
             .attr("stroke", COLORS.link)
-            .attr("stroke-width", 5) 
+            .attr("stroke-width", 8) 
             .attr("stroke-opacity", 0.5)
             .attr("stroke-linecap", "round");
 
@@ -442,7 +442,7 @@ const LegacyTree: React.FC<LegacyTreeProps> = ({ data, width, height, onAddParen
                     .attr("d", pathD)
                     .attr("fill", "none")
                     .attr("stroke", COLORS.link)
-                    .attr("stroke-width", 5) 
+                    .attr("stroke-width", 8) 
                     .attr("stroke-dasharray", "4,4")
                     .attr("stroke-opacity", 0.6)
                     .attr("stroke-linecap", "round");
